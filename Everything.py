@@ -1,8 +1,11 @@
 import os
-import sys
 import re
+import sys
+
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog, QListWidgetItem
+from PyQt5.QtWidgets import (QApplication, QDialog, QFileDialog, QLabel,
+                             QListWidgetItem)
+
 from ui_everything import Ui_Dialog
 
 
@@ -22,8 +25,6 @@ class EverythingDialog(QDialog):
         self.ui.pushButton_select.clicked.connect(self.dir_select)
         self.ui.pushButton_find.clicked.connect(self.find_file)
         self.ui.listWidget_result.itemClicked.connect(self.show_in_explorer)
-        # self.ui.listWidget_result.itemDoubleClicked.connect(self.show_in_explorer)
-
         # 清空
         self.ui.pushButton_select.clicked.connect(
             self.ui.listWidget_result.clear)
@@ -46,24 +47,42 @@ class EverythingDialog(QDialog):
         self.ui.pushButton_find.setEnabled(False)
         self.ui.pushButton_find.repaint()
         path = self.ui.textEdit_dir.toPlainText()
-        filename = self.ui.textEdit_filePattern.toPlainText().lower()
+        self.search_pattern = self.ui.textEdit_filePattern.toPlainText().lower()
         i = 0
         for root, dirnames, filenames in os.walk(path):
-            for dirname in dirnames:
-                if filename in dirname.lower():
-                    i += 1
-                    write = os.path.join(root, dirname)
-                    self.ui.listWidget_result.addItem(
-                        '{0} d  {1}'.format(i, write))
-                    # result.append(write)
-            for file in filenames:
-                if filename in file.lower():
-                    i += 1
-                    write = os.path.join(root, file)
-                    self.ui.listWidget_result.addItem(
-                        '{0} a  {1}'.format(i, write))
-                    # result.append(write)
+            # 遍历目录
+            i = self.traverse_objs(i, root, dirnames, 'd')
+            # 遍历文件
+            i = self.traverse_objs(i, root, filenames, 'a')
+
         self.ui.pushButton_find.setEnabled(True)
+
+    def traverse_objs(self, i: int, root: str, filenames: list, file_type: str) -> int:
+        """遍历文件或目录
+
+        Parameters
+        ----------
+        i : int
+            计数值
+        root : str
+
+        filenames : list
+            文件或目录的集合
+        file_type : str
+            文件还是目录
+
+        Returns
+        -------
+        int
+            更新后的计数值
+        """
+        for filename in filenames:
+            filename = filename.lower()
+            if self.search_pattern in filename:
+                i += 1
+                self.ui.listWidget_result.addItem(
+                    '{0} {file_type}  {1}'.format(i, os.path.join(root, filename), file_type=file_type))
+        return i
 
     def show_in_explorer(self, item: QListWidgetItem):
         """
