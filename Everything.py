@@ -3,8 +3,8 @@ import re
 import sys
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import (QApplication, QDialog, QFileDialog, QLabel,
-                             QListWidgetItem)
+from PyQt5.QtWidgets import (
+    QApplication, QDialog, QFileDialog, QListWidgetItem)
 
 from ui_everything import Ui_Dialog
 
@@ -28,9 +28,9 @@ class EverythingDialog(QDialog):
         # 清空
         self.ui.pushButton_select.clicked.connect(
             self.ui.listWidget_result.clear)
-        self.ui.textEdit_dir.textChanged.connect(
+        self.ui.lineEdit_dir.textChanged.connect(
             self.ui.listWidget_result.clear)
-        self.ui.textEdit_filePattern.textChanged.connect(
+        self.ui.lineEdit_filePattern.textChanged.connect(
             self.ui.listWidget_result.clear)
 
     def dir_select(self):
@@ -39,15 +39,17 @@ class EverythingDialog(QDialog):
         """
         chosen_dir: str = QFileDialog.getExistingDirectory(
             self, "选择查找路径", EverythingDialog.initial_path, QFileDialog.ShowDirsOnly)
-        self.ui.textEdit_dir.setText(chosen_dir)
+        self.ui.lineEdit_dir.setText(chosen_dir)
 
     def find_file(self):
         """将查询结果直接输出
         """
+        path = self.ui.lineEdit_dir.text()
+        self.search_pattern = self.ui.lineEdit_filePattern.text().lower()
+        if self.search_pattern is None:
+            return
         self.ui.pushButton_find.setEnabled(False)
         self.ui.pushButton_find.repaint()
-        path = self.ui.textEdit_dir.toPlainText()
-        self.search_pattern = self.ui.textEdit_filePattern.toPlainText().lower()
         i = 0
         for root, dirnames, filenames in os.walk(path):
             # 遍历目录
@@ -80,8 +82,12 @@ class EverythingDialog(QDialog):
             filename = filename.lower()
             if self.search_pattern in filename:
                 i += 1
-                self.ui.listWidget_result.addItem(
-                    '{0} {file_type}  {1}'.format(i, os.path.join(root, filename), file_type=file_type))
+                display_text = '{0:<3} {file_type}  {1}'.format(
+                    i, os.path.join(root, filename), file_type=file_type)
+                item = QListWidgetItem(display_text, self.ui.listWidget_result)
+                if file_type == 'd':
+                    item.setForeground(QtGui.QColor("darkBlue"))
+                    item.setBackground(QtGui.QColor("lightGray"))
         return i
 
     def show_in_explorer(self, item: QListWidgetItem):
@@ -89,7 +95,7 @@ class EverythingDialog(QDialog):
         在资源管理器中显示
         """
         filepath = os.path.abspath(
-            re.sub(r'^\d+ [ad]  ', "", item.text()))  # 用abspath将路径中所有的/转换成\
+            re.sub(r'^\d+\s+[ad]  ', "", item.text()))  # 用abspath将路径中所有的/转换成\
         command = "explorer.exe /select,{}".format(filepath)
         # os.startfile(re.sub(r'^\d+ [ad]  ', "", item.text()),"explore")
         os.system(command)
